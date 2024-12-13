@@ -2,8 +2,7 @@ from flask import request, jsonify, Flask
 from app.blueprints.users import users_bp
 from .schemas import user_schema,login_schema
 from marshmallow import ValidationError
-from app.models import Users, db
-# from oauthlib import oauth
+from app.models import Users, db, oauth
 from sqlalchemy import select
 from app.extensions import limiter
 from app.utils.util import encode_token #token_required, token
