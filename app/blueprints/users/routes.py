@@ -2,10 +2,11 @@ from flask import request, jsonify, Flask
 from app.blueprints.users import users_bp
 from .schemas import user_schema,login_schema
 from marshmallow import ValidationError
-from app.models import Users, db, oauth
+from app.models import Users, db
+# from oauthlib import oauth
 from sqlalchemy import select
 from app.extensions import limiter
-from app.utils.util import encode_token, token_required, token
+from app.utils.util import encode_token #token_required, token
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
 
@@ -99,7 +100,7 @@ def create_user():
     
     #If data is valid, create new user with that data
     pwhash = generate_password_hash(user_data['password'])
-    new_user = Users(name=user_data['name'], email=user_data['email'], phone=user_data['phone'], password=pwhash, dob=user_data['dob'])
+    new_user = Users(name=user_data['name'], email=user_data['email'], phone=user_data['phone'], password=pwhash, dob=user_data['dob']) ## take out and DOB
     db.session.add(new_user) #Add to session
     db.session.commit() #commit session to db
 

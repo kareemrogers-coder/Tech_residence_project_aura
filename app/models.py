@@ -4,6 +4,8 @@ from sqlalchemy import Column
 from typing import List
 from datetime import date
 from PIL import Image
+from authlib.integrations.flask_client import OAuth
+
 
 
 class Base(DeclarativeBase):
