@@ -8,6 +8,18 @@ from app.extensions import limiter
 from app.utils.util import encode_token #token_required, token
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
+import re
+
+def token_generator(email):
+    return create_access_token(identity=email)
+
+def pwd_validation(password):
+    if len(password) < 8:
+        return "Password should be at least 8 character long."
+    if not re.search(r"[A-Za-z]", password) or not re.search(r"[0-9]", password):
+        return "Password should contain both letters and numbers."
+    return None
+
 
 # Login user
 @users_bp.route("/login", methods=['POST'])
@@ -28,7 +40,7 @@ def login():
     user = db.session.execute(query).scalars().first()
 
     if google_login:
-        google = oauth.create_client('google')
+        google = OAuth.create_client('google')
         try:
             token = google.authorize_access_token()
             user_info = google.parse_id_token(token)
@@ -40,14 +52,14 @@ def login():
 
             #if user exist 
             if user:
-                access_token = create_access_token(identity=email)
+                access_token = token_generator(email)
                 return jsonify({'access_token': access_token, 'user_info': {'email': email, 'name': name}}), 200
             else:
                 new_google_user = Users(email=email, name=name, password=None)
                 db.session.add(new_google_user)
                 db.session.commit()
 
-                access_token = create_access_token(identity=email)
+                access_token = token_generator(email)
 
                 return jsonify({
                     'message': "token generated successfully",
@@ -92,6 +104,11 @@ def create_user():
     except ValidationError as e:
         return jsonify(e.messages), 400
     
+    #check for password validatiin 
+    pwd_error = pwd_validation(user_data['password'])
+    if pwd_error:
+        return jsonify({"message": pwd_error}), 400
+    
     query = select(Users).where(Users.email == user_data['email'])
     existing = db.session.execute(query).scalars().first()
     if existing:
@@ -100,6 +117,7 @@ def create_user():
     #If data is valid, create new user with that data
     pwhash = generate_password_hash(user_data['password'])
     new_user = Users(name=user_data['name'], email=user_data['email'], phone=user_data['phone'], password=pwhash, dob=user_data['dob']) ## take out and DOB
+    
     db.session.add(new_user) #Add to session
     db.session.commit() #commit session to db
 

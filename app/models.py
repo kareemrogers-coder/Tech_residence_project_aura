@@ -23,7 +23,10 @@ class Users(Base):
     dob: Mapped[date] = mapped_column(nullable=False)
     password: Mapped[str] = mapped_column(db.String(500), nullable=False)
 
-    images: Mapped[List['Images']] = db.relationship(back_populates = 'user')
+    images: Mapped[List['Images']] = db.relationship('Images', back_populates = 'user')
+    leaderboard_images: Mapped[List['Leaderboard']] = db.relationship('Leaderboard', back_populates='user')
+    comments: Mapped[List['LeaderboardComment']] = db.relationship('LeaderboardComment',  back_populates = 'user')
+    likes: Mapped[List ['LeaderboardLike']] = db.relationship('LeaderboardLike', back_populates='user')
 
 
 class Images(Base):
@@ -34,5 +37,50 @@ class Images(Base):
     image = db.Column(db.LargeBinary, nullable=False)
     user_id: Mapped[int] = mapped_column(db.ForeignKey('users.id'))
 
+    # leaderboard_images: Mapped[List['Leaderboard]] = db.relationship('Leaderbaord', back_populates='orignal_image')
 
-    user: Mapped['Users'] = db.relationship(back_populates = 'images')
+    user: Mapped['Users'] = db.relationship('Users', back_populates = 'images')
+    leaderboard: Mapped[List['Leaderboard']] = db.relationship('Leaderboard', back_populates = 'original_image')
+
+class Leaderboard(Base):
+    __tablename__ = 'leaderboard'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    image = db.Column(db.LargeBinary, nullable=False)
+    user_id: Mapped[int] = mapped_column(db.ForeignKey('users.id'))
+    original_image_id: Mapped[int] = mapped_column(db.ForeignKey('images.id'))
+
+    user: Mapped['Users'] = db.relationship('Users', back_populates = 'leaderboard_images')
+    original_image: Mapped['Images'] = db.relationship('Images', back_populates= 'leaderboard')
+    comments: Mapped[List['LeaderboardComment']] = db.relationship('LeaderboardComment', back_populates = 'leaderboard_image')
+    likes: Mapped[List['LeaderboardLike']] = db.relationship('LeaderboardLike', back_populates = 'leaderboard_image')
+
+
+    def like_count(self):
+        return len(self.likes)
+    
+    def comment_count(self): 
+        return len(self.comments)
+    
+
+class LeaderboardComment(Base):
+    __tablename__ = 'leaderboard_comments'
+
+    id: Mapped[int] = mapped_column(primary_key =True)
+    text: Mapped[str] = mapped_column(db.String(500), nullable=False)
+    user_id: Mapped[int] = mapped_column(db.ForeignKey('users.id'))
+    leaderboard_image_id: Mapped[int] = mapped_column(db.ForeignKey('leaderboard.id'))
+
+    user: Mapped['Users'] = db.relationship('Users', back_populates = 'comments')
+    leaderboard_image: Mapped['Leaderboard'] = db.relationship('Leaderboard', back_populates = 'comments')
+
+
+
+class LeaderboardLike(Base):
+    __tablename__ = 'leaderboard_likes'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(db.ForeignKey('users.id'))
+    leaderboard_image_id: Mapped[int] = mapped_column(db.ForeignKey('leaderboard.id'))
+
+    user: Mapped['Users'] = db.relationship('Users', back_populates= 'likes')
+    leaderboard_image: Mapped['Leaderboard'] = db.relationship('Leaderboard', back_populates ='likes')
