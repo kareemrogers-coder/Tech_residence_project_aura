@@ -1,6 +1,6 @@
 from flask import request, jsonify, Flask
 from app.blueprints.users import users_bp
-from .schemas import user_schema,login_schema
+from .schemas import user_schema,login_schema,users_schema
 from marshmallow import ValidationError
 from app.models import Users, db, OAuth
 from sqlalchemy import select
@@ -94,7 +94,37 @@ def login():
 
 
 #register/signup new users 
-@users_bp.route("/signup", methods=['POST'])
+# @users_bp.route("/signup", methods=['POST'])
+# # @limiter.limit("3 per hour")
+# def create_user():
+#     #Validate and Deserialize incoming data
+#     try:
+#         user_data = user_schema.load(request.json)
+#     #If data invalid respond with error message
+#     except ValidationError as e:
+#         return jsonify(e.messages), 400
+    
+#     #check for password validatiin 
+#     pwd_error = pwd_validation(user_data['password'])
+#     if pwd_error:
+#         return jsonify({"message": pwd_error}), 400
+    
+#     query = select(Users).where(Users.email == user_data['email'])
+#     existing = db.session.execute(query).scalars().first()
+#     if existing:
+#         return jsonify({"message": "Account already associated with that email."}), 400
+    
+#     #If data is valid, create new user with that data
+#     pwhash = generate_password_hash(user_data['password'])
+#     new_user = Users(name=user_data['name'], email=user_data['email'], phone=user_data['phone'], password=pwhash, dob=user_data['dob']) ## take out and DOB
+
+#     db.session.add(new_user) #Add to session
+#     db.session.commit() #commit session to db
+
+#     return user_schema.jsonify(new_user), 201 #return new user object as a response
+
+
+@users_bp.route("/", methods=['POST'])
 # @limiter.limit("3 per hour")
 def create_user():
     #Validate and Deserialize incoming data
@@ -117,8 +147,45 @@ def create_user():
     #If data is valid, create new user with that data
     pwhash = generate_password_hash(user_data['password'])
     new_user = Users(name=user_data['name'], email=user_data['email'], phone=user_data['phone'], password=pwhash, dob=user_data['dob']) ## take out and DOB
-    
+
     db.session.add(new_user) #Add to session
     db.session.commit() #commit session to db
 
     return user_schema.jsonify(new_user), 201 #return new user object as a response
+
+
+
+@users_bp.route("/", methods=["GET"])
+def get_users():
+    query = select(Users)
+    users = db.session.execute(query).scalars().all()
+
+    return users_schema.jsonify(users), 200
+
+
+@users_bp.route("/<int:user_id>", methods=['GET'])
+def get_user(user_id):
+    member = db.session.get(Users, user_id)
+
+    return user_schema.jsonify(member), 200
+
+
+@users_bp.route("/", methods=['PUT'])
+@token_required
+def update_user(token_user):
+    user = db.session.get(Users, token_user)
+
+    if user == None:
+        return jsonify({"message": "invalid id"}), 400
+    
+    try:
+        user_data = user_schema.load(request.json)
+    except ValidationError as e:
+        return jsonify(e.messages), 400
+    
+    for field, value in user_data.items():
+        if value:
+            setattr(user, field, value)
+
+    db.session.commit()
+    return user_schema.jsonify(user), 200

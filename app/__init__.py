@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from app.models import db
 from app.extensions import ma, limiter
 from app.blueprints.users import users_bp
@@ -28,4 +28,9 @@ def create_app(config_name):
     app.register_blueprint(leaderboardcomments_bp, url_perfix = "/leaderboardcomments")
     app.register_blueprint(leaderboardlike_bp, url_perfix = "/leaderboardlike")
 
+    @app.route('/')
+    def home():
+        return jsonify({"Message": "Welcome to Aura API"})
+
     return app
+
